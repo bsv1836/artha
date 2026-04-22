@@ -1,0 +1,28 @@
+# Environment variables - NEVER commit these
+.env
+*.env
+
+# GCP Service Account Key - sensitive credentials
+vertex-key.json
+*-key.json
+*.json.key
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Test files
+test_ai.py
