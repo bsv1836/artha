@@ -10,6 +10,7 @@ export default function TransactionForm({ user, onSuccess }) {
     description: ''
   });
   const [loading, setLoading] = useState(false);
+  const [isIncome, setIsIncome] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +24,7 @@ export default function TransactionForm({ user, onSuccess }) {
       }
       
       const payload = {
-        amount: parseFloat(formData.amount),
+        amount: isIncome ? -Math.abs(parseFloat(formData.amount)) : Math.abs(parseFloat(formData.amount)),
         transaction_date: formData.transaction_date,
         category: formData.category,
         description: formData.description || null
@@ -50,16 +51,33 @@ export default function TransactionForm({ user, onSuccess }) {
   return (
     <div className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-2xl transition-all duration-300 hover:shadow-teal-900/20 hover:border-teal-500/30">
       <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-        <span className="bg-teal-500/20 p-2 rounded-lg text-teal-400">
+        <span className={`bg-teal-500/20 p-2 rounded-lg ${isIncome ? 'text-green-400' : 'text-teal-400'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
         </span>
-        Log Expense
+        {isIncome ? 'Log Income' : 'Log Expense'}
       </h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex bg-gray-900/80 p-1 rounded-lg mb-2">
+          <button 
+            type="button" 
+            onClick={() => setIsIncome(false)}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${!isIncome ? 'bg-teal-500 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+          >
+            Expense
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setIsIncome(true)}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${isIncome ? 'bg-green-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+          >
+            Income
+          </button>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs text-gray-400 font-medium uppercase tracking-wider">Amount ($)</label>
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wider">Amount (₹)</label>
             <input 
               type="number" step="0.01" min="0" required
               className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
@@ -104,7 +122,7 @@ export default function TransactionForm({ user, onSuccess }) {
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full mt-2 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-teal-500/25 transition-all transform active:scale-[0.98] disabled:opacity-50"
+          className={`w-full mt-2 py-3 font-bold rounded-lg hover:shadow-lg transition-all transform active:scale-[0.98] disabled:opacity-50 text-white ${isIncome ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-green-500/25' : 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:shadow-teal-500/25'}`}
         >
           {loading ? 'Logging...' : 'Save Transaction'}
         </button>

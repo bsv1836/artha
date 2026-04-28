@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import pandas as pd
 from sqlalchemy.orm import Session
 import os
+import io
 
 from services.math_engine import calculate_spend_velocity, calculate_savings_velocity
 from services.advisor import generate_insight
@@ -120,13 +121,84 @@ def create_transaction(transaction: schemas.TransactionCreate, user: dict = Depe
     db.refresh(new_tx)
     return new_tx
 
+@app.post("/api/transactions/upload")
+async def upload_transactions(file: UploadFile = File(...), user: dict = Depends(verify_firebase_token), db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.firebase_uid == user["uid"]).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    try:
+        contents = await file.read()
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+            
+        # Clean column names (strip spaces, handle case issues)
+        df.columns = df.columns.str.strip()
+        
+        imported_count = 0
+        for index, row in df.iterrows():
+            def parse_amt(val):
+                if pd.isna(val): return 0.0
+                if isinstance(val, str):
+                    val = val.replace('$', '').replace('₹', '').replace(',', '').strip()
+                    if not val: return 0.0
+                    try: return float(val)
+                    except ValueError: return 0.0
+                return float(val)
+                
+            debit = parse_amt(row.get('Debit'))
+            credit = parse_amt(row.get('Credit'))
+            
+            amount = 0.0
+            if debit > 0:
+                amount = debit
+            elif credit > 0:
+                amount = -credit
+            else:
+                continue
+                
+            # Extract Description
+            description = str(row.get('Description', ''))
+            if pd.isna(row.get('Description')):
+                description = ""
+            
+            # Map Date
+            date_val = row.get('Date')
+            if pd.isna(date_val):
+                continue # Skip rows with no date (like "Total" rows at the bottom of the sheet)
+                
+            try:
+                tx_date = pd.to_datetime(date_val, dayfirst=True).date()
+                if pd.isna(tx_date): # Catch NaT (Not a Time)
+                    continue
+            except:
+                continue
+                
+            new_tx = models.Transaction(
+                amount=amount,
+                transaction_date=tx_date,
+                category="Other", # Balancing rows and imported rows default to Other
+                description=description,
+                user_id=db_user.user_id
+            )
+            db.add(new_tx)
+            imported_count += 1
+            
+        db.commit()
+        return {"message": f"Successfully imported {imported_count} transactions"}
+    except Exception as e:
+        print(f"Error parsing file: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Upload Failed: {str(e)}. Check your columns.")
+
 @app.get("/api/transactions", response_model=List[schemas.TransactionResponse])
 def get_transactions(user: dict = Depends(verify_firebase_token), db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.firebase_uid == user["uid"]).first()
     if not db_user:
         return []
         
-    txs = db.query(models.Transaction).filter(models.Transaction.user_id == db_user.user_id).order_by(models.Transaction.transaction_date).all()
+    txs = db.query(models.Transaction).filter(models.Transaction.user_id == db_user.user_id).order_by(models.Transaction.transaction_date.asc(), models.Transaction.transaction_id.asc()).all()
     return txs
 
 @app.post("/api/goals", response_model=schemas.GoalResponse)

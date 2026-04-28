@@ -15,6 +15,14 @@
   hyper-personalized, actionable financial advice — not generic tips.
 </p>
 
+---
+
+## 🚩 The Problem
+Financial illiteracy and "spending blindness." Millions of young professionals and students struggle to manage their finances, not because they lack money, but because they lack **clarity**. Current expense trackers are passive—they just show you a list of numbers. They don't tell you *what* to do next or *how* your current spending pace will affect your end-of-month goals. This leads to anxiety, overspending, and missed savings targets.
+
+## 💡 The Solution
+**Artha** is an intelligent, AI-driven personal finance assistant that acts as your own **Chief Financial Officer**. Built for the Google Solution Challenge, Artha uses **Google Vertex AI (Gemini 1.5 Pro)** to analyze your real spending patterns and deliver hyper-personalized, actionable financial advice — not generic tips. Unlike traditional apps, Artha calculates your **Spend Velocity** in real-time, turning raw data into a clear financial roadmap.
+
 <p align="center">
   <a href="#-features">Features</a> •
   <a href="#-architecture">Architecture</a> •
